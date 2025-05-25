@@ -11,6 +11,18 @@ VERDE = (0, 255, 0)
 ROJO = (255, 0, 0)
 
 pygame.init()
+# Cargar imágenes de las piezas
+img_peon = pygame.image.load("images/black-pawn.png")
+img_reina = pygame.image.load("images/black-queen.png")
+img_rey_blanco = pygame.image.load("images/white-king.png")
+img_rey_negro = pygame.image.load("images/black-king.png")
+
+# Ajustar tamaño al de una casilla (80x80)
+img_peon = pygame.transform.scale(img_peon, (TAM, TAM))
+img_reina = pygame.transform.scale(img_reina, (TAM, TAM))
+img_rey_blanco = pygame.transform.scale(img_rey_blanco, (TAM, TAM))
+img_rey_negro = pygame.transform.scale(img_rey_negro, (TAM, TAM))
+
 pantalla = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Ajedrez Mini")
 fuente = pygame.font.SysFont(None, 60)
@@ -44,18 +56,14 @@ def dibujar_tablero():
 
 def dibujar_piezas():
     # Peón o reina negra
-    pieza_negra = "♛" if coronado else "♟"
-    x, y = peon[1]*TAM + 20, peon[0]*TAM + 10
-    render = fuente.render(pieza_negra, True, (0, 0, 0))
-    pantalla.blit(render, (x, y))
+    imagen = img_reina if coronado else img_peon
+    pantalla.blit(imagen, (peon[1] * TAM, peon[0] * TAM))
+
     # Rey negro
-    x, y = rey_negro[1]*TAM + 20, rey_negro[0]*TAM + 10
-    render = fuente.render("♚", True, (0, 0, 0))
-    pantalla.blit(render, (x, y))
+    pantalla.blit(img_rey_negro, (rey_negro[1] * TAM, rey_negro[0] * TAM))
+
     # Rey blanco
-    x, y = rey_blanco[1]*TAM + 20, rey_blanco[0]*TAM + 10
-    render = fuente.render("♔", True, (255, 255, 255))
-    pantalla.blit(render, (x, y))
+    pantalla.blit(img_rey_blanco, (rey_blanco[1] * TAM, rey_blanco[0] * TAM))
 
 def es_casilla_libre(pos):
     return not (posiciones_iguales(pos, rey_blanco) or posiciones_iguales(pos, rey_negro) or posiciones_iguales(pos, peon))
@@ -131,6 +139,27 @@ def movimientos_rey_negro():
             movs.append(destino)
     return movs
 
+def movimientos_reina(posicion):
+    movs = []
+    direcciones = [(-1, 0), (1, 0), (0, -1), (0, 1),  # vertical y horizontal
+                   (-1, -1), (-1, 1), (1, -1), (1, 1)]  # diagonales
+
+    for df, dc in direcciones:
+        f, c = posicion
+        while True:
+            f += df
+            c += dc
+            if not dentro(f, c):
+                break
+            destino = [f, c]
+            if posiciones_iguales(destino, rey_blanco) or posiciones_iguales(destino, rey_negro):
+                movs.append(destino)
+                break
+            if not es_casilla_libre(destino):
+                break
+            movs.append(destino)
+    return movs
+
 def computadora_mueve():
     global coronado, peon, rey_negro
 
@@ -145,6 +174,14 @@ def computadora_mueve():
             peon = mov_peon_seguro[0]
             if peon[0] == 7:
                 coronado = True
+            return
+    else:
+        # Mover reina hacia el rey blanco si puede
+        movs = movimientos_reina(peon)
+        if movs:
+            # Elegir el movimiento más cercano al rey blanco
+            movs.sort(key=lambda m: abs(m[0]-rey_blanco[0]) + abs(m[1]-rey_blanco[1]))
+            peon = movs[0]
             return
     # Mover rey negro para proteger peon o acercarse
     opciones = []
